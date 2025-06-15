@@ -14,6 +14,8 @@ const allTab = $(".all-tab");
 const activeTab = $(".active-tab");
 const completeTab = $(".completed-tab");
 
+const tabList = $$(".tab-button");
+
 // console log test
 console.log(titleInput);
 
@@ -76,11 +78,11 @@ function addTask(e) {
   // Save task on local memory
   saveTasks(todoTasks);
 
-  // Reset form input
-  todoForm.reset();
-
   // Close modal
   toggleModal();
+
+  // Reset form input
+  todoForm.reset();
 
   renderTasks(todoTasks);
 }
@@ -88,6 +90,7 @@ function addTask(e) {
 // Save tasks list to local memory
 function saveTasks(tasks) {
   localStorage.setItem("todoTasks", JSON.stringify(tasks));
+  renderTasks(tasks);
 }
 
 // Handle all button in Task
@@ -217,45 +220,71 @@ function renderTasks(tasks) {
     return;
   }
 
-  const html = tasks
-    .map(
-      (task, index) => `
-    <div class="task-card ${task.cardColor} ${
-        task.isCompleted ? "completed" : ""
-      }">
-          <div class="task-header">
-            <h3 class="task-title">${task.title}</h3>
-            <button class="task-menu">
-              <i class="fa-solid fa-ellipsis fa-icon"></i>
-              <div class="dropdown-menu">
-                <div class="dropdown-item edit edit-btn" data-index="${index}">
-                  <i class="fa-solid fa-pen-to-square fa-icon"></i>
-                  Edit
-                </div>
-                <div class="dropdown-item complete complete-btn" data-index="${index}">
-                  <i class="fa-solid fa-check fa-icon"></i>
-                  ${task.isCompleted ? "Mark as Active" : "Mark as Complete"}
-                </div>
-                <div class="dropdown-item delete delete-btn" data-index="${index}">
-                  <i class="fa-solid fa-trash fa-icon"></i>
-                  Delete
-                </div>
-              </div>
-            </button>
-          </div>
-          <p class="task-description">
-            ${task.description}
-          </p>
-           <div class="task-time-row">
-            <div class="task-time">${task.startTime} - ${task.endTime}</div>
-            <div class="task-due-date">Due: ${task.dueDate}</div>
-          </div>
-        </div>
-        `
-    )
-    .join("");
+  todoList.innerHTML = "";
 
-  todoList.innerHTML = html;
+  tasks.map((task, index) => {
+    const taskCard = document.createElement("div");
+    taskCard.classList.add("task-card");
+    taskCard.classList.add(task.cardColor);
+
+    if (task.isCompleted) {
+      taskCard.classList.add("completed");
+    }
+
+    const taskHeader = document.createElement("div");
+    taskHeader.classList.add("task-header");
+
+    const taskTitle = document.createElement("h3");
+    taskTitle.classList.add("task-title");
+    taskTitle.textContent = task.title;
+
+    const taskMenuBtn = document.createElement("button");
+    taskMenuBtn.classList.add("task-menu");
+    taskMenuBtn.innerHTML = `
+    <i class="fa-solid fa-ellipsis fa-icon"></i>
+    <div class="dropdown-menu">
+      <div class="dropdown-item edit edit-btn" data-index="${index}">
+        <i class="fa-solid fa-pen-to-square fa-icon"></i>
+        Edit
+      </div>
+      <div class="dropdown-item complete complete-btn" data-index="${index}">
+        <i class="fa-solid fa-check fa-icon"></i>
+        ${task.isCompleted ? "Mark as Active" : "Mark as Complete"}
+      </div>
+      <div class="dropdown-item delete delete-btn" data-index="${index}">
+        <i class="fa-solid fa-trash fa-icon"></i>
+        Delete
+      </div>
+    </div>
+    `;
+
+    taskHeader.appendChild(taskTitle);
+    taskHeader.appendChild(taskMenuBtn);
+
+    const taskDesc = document.createElement("p");
+    taskDesc.classList.add("task-description");
+    taskDesc.textContent = task.description;
+
+    const taskTimeRow = document.createElement("div");
+    taskTimeRow.classList.add("task-time-row");
+
+    const taskTime = document.createElement("div");
+    taskTime.classList.add("task-time");
+    taskTime.textContent = `${task.startTime} - ${task.endTime}`;
+
+    const taskDueDate = document.createElement("div");
+    taskDueDate.classList.add("task-due-date");
+    taskDueDate.textContent = `Due: ${task.dueDate}`;
+
+    taskTimeRow.appendChild(taskTime);
+    taskTimeRow.appendChild(taskDueDate);
+
+    taskCard.appendChild(taskHeader);
+    taskCard.appendChild(taskDesc);
+    taskCard.appendChild(taskTimeRow);
+
+    todoList.appendChild(taskCard);
+  });
 }
 
 renderTasks(todoTasks);

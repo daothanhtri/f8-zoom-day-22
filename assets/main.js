@@ -7,14 +7,15 @@ const closeBtn = $(".modal-close");
 const cancelBtn = $(".btn-cancel");
 const todoForm = $(".todo-app-form");
 const todoList = $("#todoList");
+
 const titleInput = $("#taskTitle");
 const searchInput = $(".search-input");
+
 const tabs = $(".tabs");
+const tabList = $$(".tab-button");
 const allTab = $(".all-tab");
 const activeTab = $(".active-tab");
 const completeTab = $(".completed-tab");
-
-const tabList = $$(".tab-button");
 
 // console log test
 console.log(titleInput);
@@ -24,38 +25,47 @@ let editIndex = null;
 // Toggle Show/Hide Modal
 function toggleModal() {
   taskModal.classList.toggle("show");
-  setTimeout(() => titleInput.focus(), 100);
+}
+
+// Handle Show/Hide Modal
+function handleToggleModal(e) {
+  todoForm.reset();
+
+  toggleModal();
+
+  editIndex = null;
+
+  if (e.currentTarget === addBtn) {
+    setTimeout(() => titleInput.focus(), 100);
+  }
+  if (e.currentTarget === closeBtn || e.currentTarget === cancelBtn) {
+    const formTitle = taskModal.querySelector(".modal-title");
+
+    if (formTitle) {
+      formTitle.textContent =
+        formTitle.dataset.original || formTitle.textContent;
+      delete formTitle.dataset.original;
+    }
+
+    const submitBtn = todoForm.querySelector(".btn-submit");
+    if (submitBtn) {
+      submitBtn.textContent =
+        submitBtn.dataset.original || submitBtn.textContent;
+      delete submitBtn.dataset.original;
+    }
+
+    setTimeout(() => {
+      taskModal.querySelector(".modal").scrollTop = 0;
+    }, 300);
+  }
 }
 
 // Listen event click on button for open/close form add tasks
 [addBtn, closeBtn, cancelBtn].forEach((btn) => {
-  btn.addEventListener("click", toggleModal);
+  btn.addEventListener("click", handleToggleModal);
 });
 
-const todoTasks = JSON.parse(localStorage.getItem("todoTasks")) ?? [
-  {
-    title: "Cleaning House",
-    description: "description for cleaning house",
-    category: "other",
-    priority: "high",
-    startTime: "9:00",
-    endTime: "10:00",
-    dueDate: "2025-06-15",
-    cardColor: "blue",
-    isCompleted: false,
-  },
-  {
-    title: "Home Work",
-    description: "description for home work",
-    category: "planning",
-    priority: "high",
-    startTime: "09:00",
-    endTime: "23:00",
-    dueDate: "2025-06-15",
-    cardColor: "purple",
-    isCompleted: true,
-  },
-];
+const todoTasks = JSON.parse(localStorage.getItem("todoTasks")) ?? [];
 
 // Form submit
 todoForm.addEventListener("submit", addTask);
@@ -67,8 +77,27 @@ function addTask(e) {
   const formData = Object.fromEntries(new FormData(todoForm));
 
   if (editIndex) {
+    if (isDuplicateTask(formData, editIndex)) {
+      showToast(
+        "The title already exists, please enter another title.",
+        "warning"
+      );
+      return;
+    }
+
+    formData.title = formData.title.trim();
+    formData.isCompleted = todoTasks[editIndex].isCompleted;
     todoTasks[editIndex] = formData;
   } else {
+    if (isDuplicateTask(formData)) {
+      showToast(
+        "The title already exists, please enter another title.",
+        "warning"
+      );
+      return;
+    }
+
+    formData.title = formData.title.trim();
     formData.isCompleted = false;
 
     // Add new task to first index
@@ -85,12 +114,27 @@ function addTask(e) {
   todoForm.reset();
 
   renderTasks(todoTasks);
+
+  if (editIndex) {
+    showToast("Task updated successfully.", "success");
+  } else {
+    showToast("Task added successfully.", "success");
+  }
 }
 
 // Save tasks list to local memory
 function saveTasks(tasks) {
   localStorage.setItem("todoTasks", JSON.stringify(tasks));
   renderTasks(tasks);
+}
+
+// Check duplicate tasck title ==============> task này ở bài day23 anh bị xót, anh cập nhật ở day24 nha Dũng XD
+function isDuplicateTask(newTask, taskIndex = -1) {
+  return todoTasks.some(
+    (todo, index) =>
+      todo.title.trim().toLowerCase() === newTask.title.trim().toLowerCase() &&
+      taskIndex !== index
+  );
 }
 
 // Handle all button in Task
@@ -121,8 +165,6 @@ todoList.addEventListener("click", (e) => {
       formTitle.textContent = "Edit Task";
     }
 
-    console.log(formTitle);
-
     // Change text on button from "Create Task" to "Save Task"
     const submitBtn = taskModal.querySelector(".btn-submit");
     if (submitBtn) {
@@ -142,6 +184,7 @@ todoList.addEventListener("click", (e) => {
 
     saveTasks(todoTasks);
     renderTasks(todoTasks);
+    showToast("Task updated successfully.", "info");
   }
 
   if (deleteBtn) {
@@ -153,12 +196,12 @@ todoList.addEventListener("click", (e) => {
 
       saveTasks(todoTasks);
       renderTasks(todoTasks);
+      showToast("Task deleted successfully.", "info");
     }
   }
 });
 
 // Tabs
-
 // Render task list with status
 const tabStatus = {
   all() {
@@ -174,6 +217,7 @@ const tabStatus = {
   },
 };
 
+// Handle action on tab button
 tabs.addEventListener("click", (e) => {
   const activeTabBtn = e.target.closest(".tab-button");
   if (activeTabBtn) {
@@ -209,23 +253,64 @@ searchInput.oninput = function () {
   }
 };
 
-// Function Render tasks list to html
+// Toast function
+function showToast(message = "", type = "info") {
+  const toastContainer = $("#toast-container");
+
+  const toast = document.createElement("div");
+
+  // Auto remove toast
+  const autoRemoveId = setTimeout(function () {
+    toastContainer.removeChild(toast);
+  }, 5000);
+
+  // Remove toast when clicked
+  toast.onclick = function (e) {
+    if (e.target.closest(".toast-close")) {
+      toastContainer.removeChild(toast);
+      clearTimeout(autoRemoveId);
+    }
+  };
+
+  const icons = {
+    success: "fa-solid fa-circle-check",
+    info: "fa-solid fa-circle-info",
+    warning: "fa-solid fa-circle-exclamation",
+    error: "fa-solid fa-circle-exclamation",
+  };
+
+  const icon = icons[type];
+
+  toast.classList.add("toast", `toast-${type}`);
+  toast.style.animation = `slideInLeft ease-out .3s, fadeOut ease-in 0.6s 3.4s forwards`;
+
+  toast.innerHTML = `
+                    <div class="toast-icon">
+                        <i class="${icon}"></i>
+                    </div>
+                    <div class="toast-body">
+                        <p class="toast-msg">${message}</p>
+                    </div>
+                    <div class="toast-close">
+                        <i class="fas fa-times"></i>
+                    </div>
+                `;
+  toastContainer.appendChild(toast);
+}
+
+// Function render tasks list to html
 function renderTasks(tasks) {
   const todoList = $("#todoList");
+  todoList.innerHTML = "";
 
   if (!tasks.length) {
-    todoList.innerHTML = `
-            <p>No results found!</p>
-        `;
+    todoList.textContent = "No results found!";
     return;
   }
 
-  todoList.innerHTML = "";
-
   tasks.map((task, index) => {
     const taskCard = document.createElement("div");
-    taskCard.classList.add("task-card");
-    taskCard.classList.add(task.cardColor);
+    taskCard.classList.add("task-card", task.cardColor);
 
     if (task.isCompleted) {
       taskCard.classList.add("completed");

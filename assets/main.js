@@ -8,6 +8,8 @@ const cancelBtn = $(".btn-cancel");
 const todoForm = $(".todo-app-form");
 const todoList = $("#todoList");
 
+const overlay = $(".modal-overlay");
+
 const titleInput = $("#taskTitle");
 const searchInput = $(".search-input");
 
@@ -38,7 +40,10 @@ function handleToggleModal(e) {
   if (e.currentTarget === addBtn) {
     setTimeout(() => titleInput.focus(), 100);
   }
+
   if (e.currentTarget === closeBtn || e.currentTarget === cancelBtn) {
+    confirm(`Are you sure you want to close?`);
+
     const formTitle = taskModal.querySelector(".modal-title");
 
     if (formTitle) {
@@ -63,6 +68,20 @@ function handleToggleModal(e) {
 // Listen event click on button for open/close form add tasks
 [addBtn, closeBtn, cancelBtn].forEach((btn) => {
   btn.addEventListener("click", handleToggleModal);
+});
+
+// Close modal when user click on overlay
+overlay.addEventListener("click", (e) => {
+  if (e.target === overlay) {
+    toggleModal();
+  }
+});
+
+// Close modal when user press 'ESC'
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape" && overlay.classList.contains("show")) {
+    toggleModal();
+  }
 });
 
 const todoTasks = JSON.parse(localStorage.getItem("todoTasks")) ?? [];
@@ -128,11 +147,11 @@ function saveTasks(tasks) {
   renderTasks(tasks);
 }
 
-// Check duplicate tasck title ==============> task này ở bài day23 anh bị xót, anh cập nhật ở day24 nha Dũng XD
+// Check duplicate task title ==============> task này ở bài day23 anh bị xót, anh cập nhật ở day24 nha Dũng XD
 function isDuplicateTask(newTask, taskIndex = -1) {
   return todoTasks.some(
-    (todo, index) =>
-      todo.title.trim().toLowerCase() === newTask.title.trim().toLowerCase() &&
+    (task, index) =>
+      task.title.trim().toLowerCase() === newTask.title.trim().toLowerCase() &&
       taskIndex !== index
   );
 }
@@ -191,7 +210,7 @@ todoList.addEventListener("click", (e) => {
     const taskIndex = deleteBtn.dataset.index;
     const task = todoTasks[taskIndex];
 
-    if (confirm(`Are you sure you want to delete the ${task.title}`)) {
+    if (confirm(`Are you sure you want to delete task "${task.title}"`)) {
       todoTasks.splice(taskIndex, 1);
 
       saveTasks(todoTasks);
